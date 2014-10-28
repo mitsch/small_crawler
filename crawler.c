@@ -112,25 +112,40 @@ void pop_output (struct output_chunks * restrict chunks)
 }
 
 
+
+
+
+
+
+
 struct domain
 {
+	// visit pages
 	uint64_t * visits;
 	size_t visitsLength;
 	size_t visitsMax;
+
+	// queued pages to be visited
 	size_t * queuePages;
 	size_t beginQueuePage;
 	size_t endQueuePage;
 	size_t maxQueuePage;
 	char * frontPage;
-	char * beginFrontPage;
-	char * endFrontPage;
+	size_t beginFrontPage;
+	size_t endFrontPage;
 	char * backPage;
-	char * beginBackPage;
-	char * endBackPage;
-	char * endFrontPage;
+	size_t usedBackPage;
+	size_t maxBackPage;
 };
 
 
+/**
+ * hash fowler-noll-vo
+ *
+ * Hash funtion maps content of \a text with length \a length into 64 bit value. It provides fast and simple mapping whilst giving
+ * satisfying mapping distribution.
+ * for more information, visit http://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+ **/
 inline uint64_t hash_fnv (const char * text, const size_t length)
 {
 	uint64_t hashValue = 0xcbf29ce484222325;
@@ -141,7 +156,13 @@ inline uint64_t hash_fnv (const char * text, const size_t length)
 	return hashValue;
 }
 
-bool test_and_set_page_visit (struct domain * d, const char * u, const size_t length)
+
+/**
+ * tests whether page with url \a u and url length \a length has been visited in the domain \a d and
+ * inserts it (or rather its hash value), if not already contained; if already been visited, it'll 
+ * return false otherwise true
+ **/
+bool test_and_set_page_visit (struct domain * restrict d, const char * restrict u, const size_t length)
 {
 	const uint64_t hash = hash_fnv(u, length);
 
@@ -173,16 +194,42 @@ bool test_and_set_page_visit (struct domain * d, const char * u, const size_t le
 }
 
 
-
-
-
-size_t strnsrch (const char * restrict str, const int ch, const size_t n)
+/**
+ *
+ *
+ **/
+struct domain * push_queue (struct domain * restrict d, const char * restrict u, size_t length, const size_t newPageSize)
 {
-	size_t i = 0;
-	while (i < n && str[i] != 0 && str[i] != ch)
-		++i;
-	return i;
+	assert(d != NULL);
+	assert(u != NULL);
+
+	while (length > 0)
+	{
+		if (d->usedBackPage == d->maxBackPage)
+		{
+			// send it to the 
+		}
+	}
+
+	const size_t remainingLength = d->endOfBackPage - d->nextInBackPage;
+	const size_t firstCopyLength = length < remainingLength ? length : remainingLength;
+
+	memcpy(d->nextInBackPage, u, firstCopyLength);
+
+	if (firstCopyLength <= length)
+	{
+		
+	}
+	else
+	{
+		
+	}
+
+	return d;
 }
+
+
+
 
 size_t _strsrch (const char * restrict str, const int ch, const size_t n)
 {
@@ -309,6 +356,9 @@ struct queue_node * push_queue (struct queue_node * node, const char * restrict 
 	return node;
 }
 
+
+
+
 enum html_parsing_state
 {
 	html_parsing_text,
@@ -374,6 +424,7 @@ struct html_parse
 };
 
 
+
 html_parse extract_references (const char * document, const size_t document_length, enum html_parsing_state state,
                                char * url, const size_t maxUrl, char * ...)
 {
@@ -391,7 +442,13 @@ html_parse extract_references (const char * document, const size_t document_leng
 }
 
 
-
+/**
+ * information about a http document
+ *
+ * A http document contains several information about a resource in the web.
+ * Amongst information about the resource itself, it also may conclude information
+ * about the internal infrastructure.
+ */
 struct http_document
 {
 	unsigned int majorVersion;
@@ -407,6 +464,12 @@ struct http_document
 	const char * endContentEncoding;
 };
 
+/**
+ * http header parser
+ *
+ * parses \a buffer with size \a length on http headers and returns information in \a document;
+ * if succesfull, a non-zero value is returned, otherwise zero is returned.
+ **/
 int parse_http_header (const char * restrict buffer, const size_t length, struct http_document * restrict document)
 {
 	assert(document != NULL);
@@ -486,6 +549,10 @@ int parse_http_header (const char * restrict buffer, const size_t length, struct
 	}
 	return validHeader;
 }
+
+
+
+
 
 
 int main (const int argc, const char * argv [])
